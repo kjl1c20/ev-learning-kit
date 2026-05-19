@@ -1,0 +1,32 @@
+[
+    {
+      "title": "EV Charging",
+      "url": "https://evkx.net/technology/battery/charging/",
+      "topics": ["charging", "charge curve", "dc fast charging"]
+    },
+    {
+      "title": "EV Battery Health",
+      "url": "https://www.geotab.com/blog/ev-battery-health/",
+      "topics": ["battery health", "degradation"]
+    },
+    {
+      "title": "Battery Cell Chemistry",
+      "url": "https://evkx.net/technology/battery/cellchemistry/",
+      "topics": ["battery chemistry", "NMC", "LFP"]
+    },
+    {
+      "title": "Battery Thermal Management",
+      "url": "https://evkx.net/technology/battery/thermalmanagement/",
+      "topics": ["thermal management", "cooling", "battery temperature"]
+    },
+    {
+      "title": "Battery Pack Architecture",
+      "url": "https://evkx.net/technology/battery/batterypack/",
+      "topics": ["battery pack", "pack design", "battery structure"]
+    },
+    {
+      "title": "Battery Management System",
+      "url": "https://evkx.net/technology/battery/batterymanagment/",
+      "topics": ["BMS", "battery management system", "charging control"]
+    }
+  ]
