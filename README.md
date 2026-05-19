@@ -1,9 +1,9 @@
-# ⚡ EV Learning Kit
+# ⚡🚗 EV Learning Kit
 
 The EV Learning Kit is an educational project designed to help users understand the fundamentals of Electric Vehicles (EVs) in a simple, hands-on way.
 It aims to make EV concepts accessible to beginners, students, and enthusiasts who want to learn how electric vehicles work.
 
-🚗 What You’ll Learn
+What You’ll Learn
 
 This learning kit covers key EV topics, including:
 
@@ -63,34 +63,6 @@ EV enthusiasts and hobbyists
 
 Anyone curious about how EVs work
 
-🛠️ Project Structure (Planned)
-ev-learning-kit/
-├── battery/
-├── charging/
-├── powertrain/
-├── simulations/
-├── resources/
-└── README.md
-
-
-(Structure may evolve as the project grows.)
-
 🚧 Project Status
 
-This project is work in progress 🚀
-New topics, examples, and learning materials will be added regularly.
-
-🤝 Contributions
-
-Contributions are welcome!
-If you’d like to improve explanations, add diagrams, simulations, or examples:
-
-Fork the repository
-
-Create a new branch
-
-Submit a pull request
-
-📚 Resources
-
-Useful references, papers, and links will be added in the resources/ section.
+This project is work in progress.
