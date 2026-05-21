@@ -1,7 +1,7 @@
-import json
 import logging
 import os
 
+import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
 from pgvector.psycopg2 import register_vector
@@ -21,6 +21,7 @@ def _get_conn():
     global _conn
     if _conn is None or _conn.closed:
         _conn = get_db_connection(DB_SECRET_NAME)
+        _conn.autocommit = True
         register_vector(_conn)
     return _conn
 
@@ -31,7 +32,7 @@ def generate_query_embedding(query: str) -> list[float]:
 
 
 def retrieve_relevant_chunks(query: str, top_k: int = 5) -> list[dict]:
-    embedding = generate_query_embedding(query)
+    embedding = np.array(generate_query_embedding(query))
 
     with _get_conn().cursor() as cur:
         cur.execute(
@@ -46,6 +47,6 @@ def retrieve_relevant_chunks(query: str, top_k: int = 5) -> list[dict]:
         rows = cur.fetchall()
 
     return [
-        {"document": content, "metadata": json.loads(metadata)}
+        {"document": content, "metadata": metadata}
         for content, metadata in rows
     ]
