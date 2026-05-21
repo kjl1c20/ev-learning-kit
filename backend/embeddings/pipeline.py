@@ -61,15 +61,6 @@ def store_in_postgres(embedded: List[dict]) -> None:
     register_vector(conn)
 
     with conn.cursor() as cur:
-        cur.execute(f"""
-            CREATE TABLE IF NOT EXISTS embeddings (
-                id TEXT PRIMARY KEY,
-                content TEXT NOT NULL,
-                embedding vector({EMBEDDING_DIMENSIONS}),
-                metadata JSONB
-            )
-        """)
-
         for chunk in embedded:
             cur.execute(
                 """
