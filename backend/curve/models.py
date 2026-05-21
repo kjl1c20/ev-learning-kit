@@ -8,7 +8,7 @@ VehicleClass = Literal["sedan", "suv", "truck", "van"]
 
 class GenerateCurveRequest(BaseModel):
     vehicle_class: VehicleClass
-    battery_capacity_kwh: float = Field(gt=0, le=300)
+    battery_capacity_kwh: float = Field(gt=0, le=1000)
     vehicle_max_dc_kw: float = Field(gt=0, le=500)
     site_power_kw: float = Field(gt=0, le=500)
 

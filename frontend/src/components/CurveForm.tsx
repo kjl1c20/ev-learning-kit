@@ -41,7 +41,7 @@ export default function CurveForm({ onSubmit, loading }: Props) {
       </Field>
 
       <Field label="Battery (kWh)">
-        <NumberInput value={capacity} onChange={setCapacity} min={10} max={300} disabled={loading} />
+        <NumberInput value={capacity} onChange={setCapacity} min={10} max={1000} disabled={loading} />
       </Field>
 
       <Field label="Vehicle max DC (kW)">
