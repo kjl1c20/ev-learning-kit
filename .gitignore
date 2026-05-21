@@ -13,7 +13,6 @@ build/
 
 # Generated pipeline artifacts
 data/processed/
-data/vectordb/
 
 # Testing
 .pytest_cache/

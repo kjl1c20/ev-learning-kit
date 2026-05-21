@@ -1,7 +1,9 @@
-EMBEDDING_MODEL = "text-embedding-3-small"
+import os
 
-CHROMA_COLLECTION_NAME = "ev_knowledge_base"
-PERSIST_DIRECTORY = "data/vectordb"
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIMENSIONS = 1536
+
+DB_SECRET_NAME = os.getenv("DB_SECRET_NAME", "")
 
 RAW_PDF_DIRECTORY = "data/raw/pdfs"
 RAW_ARTICLES_JSON = "data/raw/ev_articles.json"

@@ -1,27 +1,28 @@
+import json
 import logging
 import os
 
-import chromadb
 from dotenv import load_dotenv
 from openai import OpenAI
+from pgvector.psycopg2 import register_vector
 
-from backend.config import CHROMA_COLLECTION_NAME, EMBEDDING_MODEL, PERSIST_DIRECTORY
+from backend.config import DB_SECRET_NAME, EMBEDDING_MODEL
+from backend.utils import get_db_connection
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 _openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-_collection = None
+_conn = None
 
 
-def _get_collection():
-    global _collection
-    if _collection is None:
-        _collection = chromadb.PersistentClient(path=PERSIST_DIRECTORY).get_collection(
-            name=CHROMA_COLLECTION_NAME
-        )
-    return _collection
+def _get_conn():
+    global _conn
+    if _conn is None or _conn.closed:
+        _conn = get_db_connection(DB_SECRET_NAME)
+        register_vector(_conn)
+    return _conn
 
 
 def generate_query_embedding(query: str) -> list[float]:
@@ -31,11 +32,20 @@ def generate_query_embedding(query: str) -> list[float]:
 
 def retrieve_relevant_chunks(query: str, top_k: int = 5) -> list[dict]:
     embedding = generate_query_embedding(query)
-    results = _get_collection().query(query_embeddings=[embedding], n_results=top_k)
+
+    with _get_conn().cursor() as cur:
+        cur.execute(
+            """
+            SELECT content, metadata
+            FROM embeddings
+            ORDER BY embedding <=> %s
+            LIMIT %s
+            """,
+            (embedding, top_k),
+        )
+        rows = cur.fetchall()
+
     return [
-        {
-            "document": results["documents"][0][i],
-            "metadata": results["metadatas"][0][i],
-        }
-        for i in range(len(results["documents"][0]))
+        {"document": content, "metadata": json.loads(metadata)}
+        for content, metadata in rows
     ]

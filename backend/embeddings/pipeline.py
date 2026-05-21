@@ -3,18 +3,19 @@ import logging
 from pathlib import Path
 from typing import List
 
-import chromadb
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 from openai import OpenAI
+from pgvector.psycopg2 import register_vector
 
 from backend.config import (
-    CHROMA_COLLECTION_NAME,
     CHUNKS_DIRECTORY,
+    DB_SECRET_NAME,
+    EMBEDDING_DIMENSIONS,
     EMBEDDING_MODEL,
     EMBEDDINGS_DIRECTORY,
-    PERSIST_DIRECTORY,
 )
+from backend.utils import get_db_connection
 
 load_dotenv()
 
@@ -55,17 +56,33 @@ def save_embeddings(embedded: List[dict], output_dir: str = EMBEDDINGS_DIRECTORY
     logger.info("Saved %d embeddings to %s", len(embedded), output_dir)
 
 
-def store_in_chroma(embedded: List[dict]) -> None:
-    client = chromadb.PersistentClient(path=PERSIST_DIRECTORY)
-    collection = client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
-    collection.upsert(
-        ids=[c["id"] for c in embedded],
-        embeddings=[c["embedding"] for c in embedded],
-        documents=[c["content"] for c in embedded],
-        metadatas=[c["metadata"] for c in embedded],
-    )
-    logger.info(
-        "Stored %d embeddings in ChromaDB collection '%s'",
-        len(embedded),
-        CHROMA_COLLECTION_NAME,
-    )
+def store_in_postgres(embedded: List[dict]) -> None:
+    conn = get_db_connection(DB_SECRET_NAME)
+    register_vector(conn)
+
+    with conn.cursor() as cur:
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS embeddings (
+                id TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                embedding vector({EMBEDDING_DIMENSIONS}),
+                metadata JSONB
+            )
+        """)
+
+        for chunk in embedded:
+            cur.execute(
+                """
+                INSERT INTO embeddings (id, content, embedding, metadata)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE
+                SET content = EXCLUDED.content,
+                    embedding = EXCLUDED.embedding,
+                    metadata = EXCLUDED.metadata
+                """,
+                (chunk["id"], chunk["content"], chunk["embedding"], json.dumps(chunk["metadata"])),
+            )
+
+    conn.commit()
+    conn.close()
+    logger.info("Stored %d embeddings in PostgreSQL", len(embedded))
