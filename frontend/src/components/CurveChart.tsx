@@ -27,12 +27,13 @@ export default function CurveChart({ nativeCurve, deliveredCurve }: Props) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+        <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="soc"
-            label={{ value: "State of Charge (%)", position: "insideBottom", offset: -5, style: { fontSize: 12, fill: "#6b7280" } }}
-            tick={{ fontSize: 11, fill: "#6b7280" }}
+            ticks={[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]}
+            label={{ value: "State of Charge (%)", position: "insideBottom", offset: -15, style: { fontSize: 12, fill: "#6b7280" } }}
+            tick={{ fontSize: 10, fill: "#6b7280" }}
           />
           <YAxis
             label={{ value: "Power (kW)", angle: -90, position: "insideLeft", style: { fontSize: 12, fill: "#6b7280" } }}
@@ -43,7 +44,7 @@ export default function CurveChart({ nativeCurve, deliveredCurve }: Props) {
             labelFormatter={(label) => `SOC ${label}%`}
             contentStyle={{ fontSize: 12, borderRadius: 6 }}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
           <Line
             type="monotone"
             dataKey="native"
@@ -56,7 +57,7 @@ export default function CurveChart({ nativeCurve, deliveredCurve }: Props) {
           <Line
             type="monotone"
             dataKey="delivered"
-            name="Actual (after site limit)"
+            name="Actual (after charger limit)"
             stroke="#2563eb"
             dot={false}
             strokeWidth={2.5}
