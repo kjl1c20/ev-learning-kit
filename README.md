@@ -1,96 +1,190 @@
-# ⚡ EV Learning Kit
+# EV Learning Kit
 
-The EV Learning Kit is an educational project designed to help users understand the fundamentals of Electric Vehicles (EVs) in a simple, hands-on way.
-It aims to make EV concepts accessible to beginners, students, and enthusiasts who want to learn how electric vehicles work.
+EV Learning Kit is a RAG (Retrieval-Augmented Generation) application that answers questions about Electric Vehicles and generates realistic DC charge curves for any vehicle class. It combines a knowledge base built from EV articles and technical reports with an LLM-driven curve engine backed by real reference profiles.
 
-🚗 What You’ll Learn
+## Project Overview
 
-This learning kit covers key EV topics, including:
+The system has two core capabilities:
 
-🔋 EV Battery Fundamentals
+- **EV Q&A** — Ask any question about EV charging, battery chemistry, or powertrain technology. The system retrieves relevant knowledge chunks and generates a grounded answer via Claude.
+- **Charge Curve Generator** — Provide a vehicle class, battery size, and max DC power. The system produces a native charge curve (what the vehicle can accept) and a delivered curve (clipped to your site's charger capacity), along with charging metrics and reasoning.
 
-Battery types (Li-ion, LFP, etc.)
+## Components
 
-Battery capacity, voltage, and range
+### RAG Pipeline
 
-Battery health and degradation
+Built on OpenAI embeddings (`text-embedding-3-small`) stored in PostgreSQL via pgvector. Source material is ingested from URLs listed in `data/raw/ev_articles.json` and PDFs in `data/raw/pdfs/`. The ingestion pipeline is incremental — only new sources are fetched and embedded on each run.
 
-🔌 EV Charging
+### Charge Curve Engine
 
-AC vs DC charging
+The curve engine queries a `vehicle_profiles` table in RDS for reference vehicles of the same class, retrieves relevant RAG context, then prompts Claude to output curve parameters (peak power, taper start/end, tail power, chemistry, voltage architecture). A deterministic math layer converts those parameters into a smooth SOC vs power curve, which is then clipped to the site charger limit.
 
-Charging levels (Level 1, Level 2, Fast Charging)
+Supported vehicle classes: **sedan**, **suv**, **truck**, **van**.
 
-Charging standards and connectors
+### API
 
-Charging time calculations
+FastAPI backend with two routes:
 
-⚙️ EV Powertrain Basics
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/ask` | POST | RAG-based EV Q&A |
+| `/api/v1/generate-curve` | POST | Charge curve generation |
 
-Electric motors
+## Project Workflow
 
-Inverters and controllers
+```
+ev_articles.json                data/raw/pdfs/
+       │                               │
+       ▼                               ▼
+  loaders.py  ──────────────────► processor.py
+  (fetch HTML)                   (clean + enrich)
+                                        │
+                                        ▼
+                              data/processed/ingested/
+                                        │
+                                        ▼
+                                   chunker.py
+                                (split into chunks)
+                                        │
+                                        ▼
+                              data/processed/chunks/
+                                        │
+                                        ▼
+                               embeddings/pipeline.py
+                              (OpenAI → pgvector RDS)
+                                        │
+                                        ▼
+                               FastAPI  /api/v1/ask
+                               FastAPI  /api/v1/generate-curve
+```
 
-Regenerative braking
+## Installation
 
-🌍 EV Ecosystem
+**Requirements**
 
-Energy efficiency
+- Python 3.11+
+- AWS credentials with access to Secrets Manager (for RDS connection)
+- OpenAI API key
+- Anthropic API key
 
-Environmental impact
+**Setup**
 
-Comparison with ICE vehicles
+```bash
+pip install -r requirements.txt
+```
 
-🎯 Goal of This Project
+Create a `.env` file in the repo root:
 
-The goal of this repository is to:
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+DB_SECRET_NAME=your/secret/name
+AWS_REGION=eu-west-2
+```
 
-Provide clear and beginner-friendly explanations
+## Usage
 
-Combine theory with practical examples
+### Running the ingestion pipeline
 
-Serve as a learning reference for EV fundamentals
+Run once before starting the API. Subsequent runs only process new sources.
 
-Grow into a complete EV knowledge base over time
+```bash
+python -m backend.run_full_pipeline
+```
 
-🧠 Who Is This For?
+To force a full rebuild from scratch:
 
-Students learning about electric vehicles
+```bash
+python -m backend.run_full_pipeline --force
+```
 
-Engineers new to EV technology
+Individual steps can also be run separately:
 
-EV enthusiasts and hobbyists
+```bash
+python -m backend.ingestion.run     # fetch and save new docs only
+python -m backend.chunking.run      # rechunk all ingested docs
+python -m backend.embeddings.run    # embed and upsert new chunks only
+```
 
-Anyone curious about how EVs work
+### Starting the API
 
-🛠️ Project Structure (Planned)
-ev-learning-kit/
-├── battery/
-├── charging/
-├── powertrain/
-├── simulations/
-├── resources/
-└── README.md
+```bash
+uvicorn backend.api.main:app --reload
+```
 
+### Example requests
 
-(Structure may evolve as the project grows.)
+**Ask a question:**
 
-🚧 Project Status
+```bash
+curl -X POST http://localhost:8000/api/v1/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is the difference between NMC and LFP batteries?", "top_k": 5}'
+```
 
-This project is work in progress 🚀
-New topics, examples, and learning materials will be added regularly.
+**Generate a charge curve:**
 
-🤝 Contributions
+```bash
+curl -X POST http://localhost:8000/api/v1/generate-curve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehicle_class": "van",
+    "battery_capacity_kwh": 75,
+    "vehicle_max_dc_kw": 100,
+    "site_power_kw": 50
+  }'
+```
 
-Contributions are welcome!
-If you’d like to improve explanations, add diagrams, simulations, or examples:
+### Testing retrieval
 
-Fork the repository
+```bash
+python -m backend.rag.test_retrieval
+```
 
-Create a new branch
+## Frontend
 
-Submit a pull request
+The frontend is a Next.js app located in `frontend/`.
 
-📚 Resources
+**Install dependencies:**
 
-Useful references, papers, and links will be added in the resources/ section.
+```bash
+cd frontend
+npm install
+```
+
+**Start the dev server:**
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:3000`. It expects the FastAPI backend running at `http://localhost:8000` by default.
+
+To point to a different backend, create a `frontend/.env.local` file:
+
+```
+NEXT_PUBLIC_API_URL=http://your-backend-url
+```
+
+**Build for production:**
+
+```bash
+npm run build
+npm run start
+```
+
+## Knowledge Base Sources
+
+The RAG knowledge base is built from the following publicly available resources:
+
+- [EVKX.net](https://evkx.net)
+- [Geotab](https://www.geotab.com/blog/)
+- TNO R11236 *Living Lab Heavy Duty Laadpleinen* (2025) — real-world HD truck charging data
+
+These sources are used for personal and educational purposes only.
+
+## License
+
+MIT License — Copyright (c) 2026 kjl1c20
+
+You are free to use, copy, modify, and distribute this project, provided the original copyright notice is retained.
