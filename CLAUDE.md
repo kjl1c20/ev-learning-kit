@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EV Learning Kit is a RAG (Retrieval-Augmented Generation) pipeline that answers questions about Electric Vehicles. It ingests EV articles/PDFs, chunks and embeds them using OpenAI, stores vectors in ChromaDB, and answers user queries via Claude (Anthropic).
+EV Learning Kit is a RAG (Retrieval-Augmented Generation) system that answers questions about Electric Vehicles. It ingests EV articles/PDFs, chunks and embeds them using OpenAI, stores vectors in ChromaDB, and serves answers via a FastAPI endpoint backed by Claude (Anthropic).
 
 ## Environment Setup
 
@@ -12,48 +12,43 @@ Requires `.env` with:
 - `OPENAI_API_KEY` — used for embeddings (`text-embedding-3-small`)
 - `ANTHROPIC_API_KEY` — used for LLM responses (`claude-3-5-sonnet-latest`)
 
-Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Pipeline Execution Order
-
-Run each stage from the repo root (modules use relative paths like `data/...`):
+## Running the API
 
 ```bash
-# 1. Ingest raw documents (PDFs + HTML articles)
-python -m backend.ingestion.run_ingestion
+uvicorn backend.api.main:app --reload
+```
 
-# 2. Chunk ingested documents
-python -m backend.chunking.run_chunking
+Endpoint: `POST /api/v1/ask` with body `{"query": "...", "top_k": 5}`
 
-# 3. Generate and save embeddings (OpenAI)
-python -m backend.embeddings.embedding_pipeline
+## Pipeline Execution Order
 
-# 4. Load embeddings into ChromaDB
-python -m backend.embeddings.chroma_store
+Run from the repo root. The pipeline must be run once before the API works.
 
-# 5. Interactive retrieval test
+```bash
+python -m backend.ingestion.run    # fetch + clean + save docs
+python -m backend.chunking.run     # split docs into chunks
+python -m backend.embeddings.run   # embed chunks + load into ChromaDB
+```
+
+Test retrieval interactively:
+```bash
 python -m backend.rag.test_retrieval
 ```
 
-Raw data sources: `data/raw/ev_articles.json` (URL list for HTML scraping) and `data/raw/pdfs/` (PDF files).
-
 ## Architecture
 
-The pipeline has four sequential stages, each with its own `backend/` subpackage:
+All paths and constants are centralized in `backend/config.py`.
 
-**Ingestion** (`backend/ingestion/`): Loads PDFs via `pypdf` and HTML pages by fetching URLs listed in `ev_articles.json` via BeautifulSoup. Cleans text, enriches metadata, and saves `Document` objects as JSON to `data/processed/ingested/`.
+**Ingestion** (`backend/ingestion/`): `loaders.py` fetches PDFs via `pypdf` and HTML pages by scraping URLs listed in `data/raw/ev_articles.json`. `processor.py` cleans text, enriches metadata with keyword-detected EV topics, and saves `Document` objects as JSON to `data/processed/ingested/`. `run.py` is the entry point.
 
-**Chunking** (`backend/chunking/`): Loads ingested docs, splits with `RecursiveCharacterTextSplitter` (chunk_size=1200, overlap=200, markdown-aware separators), and saves chunks as JSON to `data/processed/chunks/`.
+**Chunking** (`backend/chunking/chunker.py`): Loads ingested docs, splits with `RecursiveCharacterTextSplitter` (chunk_size=1200, overlap=200, markdown-aware separators), and saves chunks to `data/processed/chunks/`.
 
-**Embeddings** (`backend/embeddings/`): Two steps — `embedding_pipeline.py` generates vectors via OpenAI and saves to `data/processed/embeddings/`; `chroma_store.py` reads those files and upserts into a persistent ChromaDB collection (`ev_knowledge_base`) at `data/vectordb/`. Config is centralized in `config.py`.
+**Embeddings** (`backend/embeddings/pipeline.py`): Generates vectors via OpenAI, saves them as JSON to `data/processed/embeddings/` (local cache), then upserts into a persistent ChromaDB collection (`ev_knowledge_base`) at `data/vectordb/`. The JSON cache allows re-indexing without re-calling OpenAI.
 
-**RAG** (`backend/rag/`): `retrieval.py` embeds a user query (OpenAI) and queries ChromaDB for top-k chunks. `prompts.py` builds the grounded prompt from retrieved chunks. `claude_client.py` sends the composed prompt to Claude and returns the answer. `rag_pipeline.py` ties retrieval + generation together; `test_retrieval.py` provides an interactive CLI for testing retrieval only.
+**RAG** (`backend/rag/`): `retrieval.py` embeds a query (OpenAI) and queries ChromaDB for top-k chunks using lazy initialization — the collection is not opened until the first query. `prompts.py` builds the grounded prompt. `generator.py` calls Claude. `pipeline.py` ties all three together and is what the API calls.
 
-## Key Design Decisions
-
-- Embeddings are stored twice: as flat JSON files (`data/processed/embeddings/`) and inside ChromaDB. The JSON files act as a local cache so embeddings can be re-indexed without re-calling OpenAI.
-- All scripts must be run as modules (`python -m backend.X.Y`) from the repo root because imports use the `backend.*` package namespace without any installed package or `sys.path` manipulation.
-- The `architecture.txt` file describes a planned future structure (frontend, API layer, evaluation, monitoring, Docker) that is not yet implemented.
+**API** (`backend/api/`): FastAPI app in `main.py`. Single route `POST /api/v1/ask` defined in `routes.py` with Pydantic schemas in `schemas.py`.
