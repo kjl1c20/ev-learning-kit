@@ -1,6 +1,6 @@
 import logging
 
-from backend.embeddings.pipeline import generate_embeddings, load_chunks, save_embeddings, store_in_postgres
+from backend.embeddings.pipeline import generate_embeddings, load_chunks, store_in_postgres
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,6 @@ def main():
     logger.info("Loaded %d chunks", len(chunks))
 
     embedded = generate_embeddings(chunks)
-    save_embeddings(embedded)
     store_in_postgres(embedded)
     logger.info("Embedding pipeline complete")
 

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -11,9 +12,7 @@ from pgvector.psycopg2 import register_vector
 from backend.config import (
     CHUNKS_DIRECTORY,
     DB_SECRET_NAME,
-    EMBEDDING_DIMENSIONS,
     EMBEDDING_MODEL,
-    EMBEDDINGS_DIRECTORY,
 )
 from backend.utils import get_db_connection
 
@@ -34,26 +33,22 @@ def load_chunks(chunk_dir: str = CHUNKS_DIRECTORY) -> List[Document]:
     return documents
 
 
+def _chunk_id(content: str) -> str:
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+
 def generate_embeddings(documents: List[Document]) -> List[dict]:
     embedded = []
     for idx, doc in enumerate(documents):
         logger.info("Embedding chunk %d/%d", idx + 1, len(documents))
         response = _openai_client.embeddings.create(model=EMBEDDING_MODEL, input=doc.page_content)
         embedded.append({
-            "id": f"chunk_{idx}",
+            "id": _chunk_id(doc.page_content),
             "content": doc.page_content,
             "embedding": response.data[0].embedding,
             "metadata": doc.metadata,
         })
     return embedded
-
-
-def save_embeddings(embedded: List[dict], output_dir: str = EMBEDDINGS_DIRECTORY) -> None:
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    for chunk in embedded:
-        with open(Path(output_dir) / f"{chunk['id']}.json", "w", encoding="utf-8") as f:
-            json.dump(chunk, f)
-    logger.info("Saved %d embeddings to %s", len(embedded), output_dir)
 
 
 def store_in_postgres(embedded: List[dict]) -> None:
