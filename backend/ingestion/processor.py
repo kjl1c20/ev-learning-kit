@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import re
@@ -48,12 +49,22 @@ def enrich_metadata(documents: List[Document]) -> List[Document]:
     return enriched
 
 
+def _doc_filename(doc: Document) -> str:
+    if doc.metadata.get("source_type") == "pdf":
+        stem = Path(doc.metadata["file_name"]).stem
+        page = doc.metadata.get("page", 0)
+        return f"pdf_{stem}_p{page}.json"
+    url = doc.metadata.get("url", str(id(doc)))
+    uid = hashlib.md5(url.encode()).hexdigest()[:12]
+    return f"html_{uid}.json"
+
+
 def save_documents(documents: List[Document], output_dir: str) -> None:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    for idx, doc in enumerate(documents):
-        with open(output_path / f"doc_{idx}.json", "w", encoding="utf-8") as f:
+    for doc in documents:
+        with open(output_path / _doc_filename(doc), "w", encoding="utf-8") as f:
             json.dump(
                 {"page_content": doc.page_content, "metadata": doc.metadata},
                 f,

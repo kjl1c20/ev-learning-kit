@@ -28,5 +28,10 @@
       "title": "Battery Management System",
       "url": "https://evkx.net/technology/battery/batterymanagment/",
       "topics": ["BMS", "battery management system", "charging control"]
+    },
+    {
+      "title": "EV Battery Buffer",
+      "url": "https://evkx.net/technology/battery/buffer/",
+      "topics": ["BMS", "battery management system", "usable capacity", "buffer"]
     }
   ]

@@ -37,10 +37,27 @@ def _chunk_id(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
-def generate_embeddings(documents: List[Document]) -> List[dict]:
+def _existing_ids(conn) -> set[str]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM embeddings")
+        return {row[0] for row in cur.fetchall()}
+
+
+def generate_embeddings(documents: List[Document], force: bool = False) -> List[dict]:
+    conn = get_db_connection(DB_SECRET_NAME)
+    register_vector(conn)
+    existing = set() if force else _existing_ids(conn)
+    conn.close()
+
+    if existing:
+        logger.info("Skipping %d chunks already in DB", sum(
+            1 for d in documents if _chunk_id(d.page_content) in existing
+        ))
+
     embedded = []
-    for idx, doc in enumerate(documents):
-        logger.info("Embedding chunk %d/%d", idx + 1, len(documents))
+    to_embed = [d for d in documents if _chunk_id(d.page_content) not in existing]
+    for idx, doc in enumerate(to_embed):
+        logger.info("Embedding chunk %d/%d", idx + 1, len(to_embed))
         response = _openai_client.embeddings.create(model=EMBEDDING_MODEL, input=doc.page_content)
         embedded.append({
             "id": _chunk_id(doc.page_content),
@@ -52,6 +69,10 @@ def generate_embeddings(documents: List[Document]) -> List[dict]:
 
 
 def store_in_postgres(embedded: List[dict]) -> None:
+    if not embedded:
+        logger.info("No new embeddings to store")
+        return
+
     conn = get_db_connection(DB_SECRET_NAME)
     register_vector(conn)
 
@@ -71,4 +92,4 @@ def store_in_postgres(embedded: List[dict]) -> None:
 
     conn.commit()
     conn.close()
-    logger.info("Stored %d embeddings in PostgreSQL", len(embedded))
+    logger.info("Stored %d new embeddings in PostgreSQL", len(embedded))
