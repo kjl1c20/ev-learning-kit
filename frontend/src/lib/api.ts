@@ -23,7 +23,7 @@ export async function askQuestion(query: string, topK = 5): Promise<AskResponse>
   return response.json();
 }
 
-export type VehicleClass = "sedan" | "suv" | "truck";
+export type VehicleClass = "sedan" | "suv" | "truck" | "van";
 
 export interface CurvePoint {
   soc_pct: number;

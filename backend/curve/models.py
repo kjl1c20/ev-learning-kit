@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-VehicleClass = Literal["sedan", "suv", "truck"]
+VehicleClass = Literal["sedan", "suv", "truck", "van"]
 
 
 class GenerateCurveRequest(BaseModel):

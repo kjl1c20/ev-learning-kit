@@ -36,6 +36,7 @@ export default function CurveForm({ onSubmit, loading }: Props) {
           <option value="sedan">Sedan</option>
           <option value="suv">SUV</option>
           <option value="truck">Truck</option>
+          <option value="van">Van</option>
         </select>
       </Field>
 
