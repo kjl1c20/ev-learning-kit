@@ -100,11 +100,11 @@ def _format_profiles(profiles: list[dict]) -> str:
         return "(no reference vehicles available for this class)"
     return json.dumps([
         {
-            "model": f"{p['make']} {p['model']}",
+            "model": " ".join(filter(None, [p["make"], p["model"], p.get("trim"), str(p["model_year"])])),
             "chemistry": p["chemistry"],
             "voltage": p["voltage_architecture"],
             "capacity_kwh": float(p["battery_capacity_kwh"]),
-            "peak_kw": float(p["peak_power_kw"]),
+            "peak_kw": float(p["peak_dc_power_kW"]),
             "curve_type": p["curve_type"],
             "curve_points": p["curve_points"],
             "notes": p["notes"],
