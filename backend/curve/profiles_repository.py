@@ -20,9 +20,9 @@ def get_profiles_by_class(vehicle_class: str) -> list[dict]:
     with _get_conn().cursor() as cur:
         cur.execute(
             """
-            SELECT id, make, model, vehicle_class, chemistry,
-                   battery_capacity_kwh, voltage_architecture, peak_power_kw,
-                   curve_type, curve_points, notes
+            SELECT make, model, trim, model_year, vehicle_class, chemistry,
+                   battery_capacity_kwh, voltage_architecture, "peak_dc_power_kW",
+                   curve_type, curve_points, source_url, notes
             FROM vehicle_profiles
             WHERE vehicle_class = %s
             """,
