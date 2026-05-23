@@ -15,6 +15,7 @@ class GenerateCurveRequest(BaseModel):
 
 class CurveParameters(BaseModel):
     """Native vehicle charge curve parameters chosen by the LLM."""
+    curve_type: Literal["flat_plateau", "tapered_ramp", "stepped"] = "tapered_ramp"
     initial_power_kw: float
     peak_power_kw: float
     peak_soc_start: float = Field(ge=0, le=100)
@@ -24,6 +25,7 @@ class CurveParameters(BaseModel):
     chemistry: Literal["NMC", "LFP"]
     voltage_architecture: Literal[400, 800, 900]
     reasoning: str
+    steps: list[list[float]] | None = None  # [[soc_pct, power_kw], ...] required when curve_type="stepped"
 
 
 class CurvePoint(BaseModel):

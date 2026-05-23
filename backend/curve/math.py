@@ -2,14 +2,18 @@ from backend.curve.models import CurveParameters, CurvePoint, Metrics
 
 
 def generate_native_curve(params: CurveParameters, soc_step: int = 1) -> list[CurvePoint]:
-    """
-    Build the vehicle's native charge curve from LLM parameters.
+    if params.curve_type == "stepped" and params.steps:
+        return _generate_stepped_curve(params.steps, soc_step)
+    return _generate_smooth_curve(params, soc_step)
 
+
+def _generate_smooth_curve(params: CurveParameters, soc_step: int) -> list[CurvePoint]:
+    """
     Four regions:
-      [0, peak_soc_start)        : linear ramp from initial_power → peak_power
+      [0, peak_soc_start)            : linear ramp from initial_power → peak_power
       [peak_soc_start, peak_soc_end] : flat at peak_power
       (peak_soc_end, taper_end_soc]  : linear taper from peak_power → tail_power
-      (taper_end_soc, 100]       : linear decline from tail_power → tail_power * 0.2
+      (taper_end_soc, 100]           : linear decline from tail_power → tail_power * 0.2
     """
     points = []
     final_power = params.tail_power_kw * 0.2
@@ -25,6 +29,29 @@ def generate_native_curve(params: CurveParameters, soc_step: int = 1) -> list[Cu
             power = _interp(soc, params.taper_end_soc, 100, params.tail_power_kw, final_power)
         points.append(CurvePoint(soc_pct=soc, power_kw=round(power, 1)))
 
+    return points
+
+
+def _generate_stepped_curve(steps: list[list[float]], soc_step: int) -> list[CurvePoint]:
+    """
+    Build a stepped curve by linearly interpolating between LLM-supplied breakpoints.
+    Breakpoints should have narrow SOC transitions between plateaus so drops appear near-vertical.
+    """
+    points = []
+    for soc in range(0, 101, soc_step):
+        s = float(soc)
+        if s <= steps[0][0]:
+            power = steps[0][1]
+        elif s >= steps[-1][0]:
+            power = steps[-1][1]
+        else:
+            for i in range(len(steps) - 1):
+                s0, p0 = steps[i]
+                s1, p1 = steps[i + 1]
+                if s0 <= s <= s1:
+                    power = _interp(s, s0, s1, p0, p1)
+                    break
+        points.append(CurvePoint(soc_pct=soc, power_kw=round(power, 1)))
     return points
 
 
