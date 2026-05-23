@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
@@ -9,6 +8,7 @@ from langchain_core.documents import Document
 from openai import OpenAI
 from pgvector.psycopg2 import register_vector
 
+import backend.storage as storage
 from backend.config import (
     CHUNKS_DIRECTORY,
     DB_SECRET_NAME,
@@ -24,12 +24,10 @@ _openai_client = OpenAI()
 
 
 def load_chunks(chunk_dir: str = CHUNKS_DIRECTORY) -> List[Document]:
-    files = list(Path(chunk_dir).glob("*.json"))
     documents = []
-    for file in files:
-        with open(file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            documents.append(Document(page_content=data["content"], metadata=data["metadata"]))
+    for key in storage.list_keys(chunk_dir):
+        data = storage.read_json(key)
+        documents.append(Document(page_content=data["content"], metadata=data["metadata"]))
     return documents
 
 
