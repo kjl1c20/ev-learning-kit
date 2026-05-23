@@ -12,3 +12,6 @@ RAW_PDF_DIRECTORY = "data/raw/pdfs"
 RAW_ARTICLES_JSON = "data/raw/ev_articles.json"
 INGESTED_DIRECTORY = "data/processed/ingested"
 CHUNKS_DIRECTORY = "data/processed/chunks"
+
+S3_BUCKET = os.getenv("S3_BUCKET", "ev-kit-ingestion")
+S3_PREFIX = os.getenv("S3_PREFIX", "").strip("/")

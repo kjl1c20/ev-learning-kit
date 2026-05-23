@@ -1,11 +1,12 @@
 import hashlib
-import json
 import logging
 import re
 from pathlib import Path
 from typing import List
 
 from langchain_core.documents import Document
+
+import backend.storage as storage
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +61,9 @@ def _doc_filename(doc: Document) -> str:
 
 
 def save_documents(documents: List[Document], output_dir: str) -> None:
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
     for doc in documents:
-        with open(output_path / _doc_filename(doc), "w", encoding="utf-8") as f:
-            json.dump(
-                {"page_content": doc.page_content, "metadata": doc.metadata},
-                f,
-                ensure_ascii=False,
-                indent=2,
-            )
-
+        storage.write_json(
+            f"{output_dir}/{_doc_filename(doc)}",
+            {"page_content": doc.page_content, "metadata": doc.metadata},
+        )
     logger.info("Saved %d documents to %s", len(documents), output_dir)
