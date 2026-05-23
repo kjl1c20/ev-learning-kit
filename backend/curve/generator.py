@@ -31,7 +31,8 @@ single JSON object. No prose, no code fences, no commentary outside the JSON.
 
 USER_PROMPT_TEMPLATE = """### VEHICLE TO MODEL ###
 - Class: {vehicle_class}
-- Battery capacity: {battery_capacity_kwh} kWh
+- Total battery capacity: {total_battery_capacity_kwh} kWh
+- Usable battery capacity: {usable_battery_capacity_kwh} kWh
 - Vehicle max DC charging power: {vehicle_max_dc_kw} kW
 
 The user has specified the vehicle's max DC charging power. You MUST set
@@ -76,9 +77,9 @@ Output JSON with this exact schema:
 
 def run_curve_generation(request: GenerateCurveRequest) -> GenerateCurveResponse:
     logger.info(
-        "Generating curve for class=%s capacity=%skWh max_dc=%skW site=%skW",
-        request.vehicle_class, request.battery_capacity_kwh,
-        request.vehicle_max_dc_kw, request.site_power_kw,
+        "Generating curve for class=%s total=%skWh usable=%skWh max_dc=%skW site=%skW",
+        request.vehicle_class, request.total_battery_capacity_kwh,
+        request.usable_battery_capacity_kwh, request.vehicle_max_dc_kw, request.site_power_kw,
     )
 
     rag_query = f"charge curve for {request.vehicle_class} battery chemistry voltage architecture"
@@ -87,7 +88,8 @@ def run_curve_generation(request: GenerateCurveRequest) -> GenerateCurveResponse
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
         vehicle_class=request.vehicle_class,
-        battery_capacity_kwh=request.battery_capacity_kwh,
+        total_battery_capacity_kwh=request.total_battery_capacity_kwh,
+        usable_battery_capacity_kwh=request.usable_battery_capacity_kwh,
         vehicle_max_dc_kw=request.vehicle_max_dc_kw,
         reference_profiles=_format_profiles(reference_profiles),
         rag_context=_format_rag_chunks(rag_chunks),
@@ -98,7 +100,7 @@ def run_curve_generation(request: GenerateCurveRequest) -> GenerateCurveResponse
 
     native_curve = generate_native_curve(params)
     delivered_curve = clip_to_site_power(native_curve, request.site_power_kw)
-    metrics = compute_metrics(delivered_curve, request.battery_capacity_kwh)
+    metrics = compute_metrics(delivered_curve, request.usable_battery_capacity_kwh)
 
     sources = [Source(**{k: v for k, v in chunk["metadata"].items() if k in {"title", "url", "file_name"}}) for chunk in rag_chunks]
 
@@ -118,8 +120,8 @@ def _format_profiles(profiles: list[dict]) -> str:
         {
             "model": " ".join(filter(None, [p["make"], p["model"], p.get("trim"), str(p["model_year"])])),
             "chemistry": p["chemistry"],
-            "voltage": p["voltage_architecture"],
-            "capacity_kwh": float(p["battery_capacity_kwh"]),
+            "total_capacity_kwh": float(p["total_battery_capacity_kwh"]),
+            "usable_capacity_kwh": float(p["usable_battery_capacity_kwh"]),
             "peak_kw": float(p["peak_dc_power_kW"]),
             "curve_type": p["curve_type"],
             "curve_points": p["curve_points"],

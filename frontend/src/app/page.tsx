@@ -17,6 +17,7 @@ import ReasoningPanel from "@/components/ReasoningPanel";
 
 export default function Home() {
   const [curve, setCurve] = useState<GenerateCurveResponse | null>(null);
+  const [curveRequest, setCurveRequest] = useState<GenerateCurveRequest | null>(null);
   const [curveLoading, setCurveLoading] = useState(false);
   const [curveError, setCurveError] = useState<string | null>(null);
 
@@ -28,12 +29,31 @@ export default function Home() {
     setCurveLoading(true);
     setCurveError(null);
     try {
+      setCurveRequest(request);
       setCurve(await generateCurve(request));
     } catch {
       setCurveError("Failed to generate curve. Make sure the API is running.");
     } finally {
       setCurveLoading(false);
     }
+  }
+
+  function handleExport() {
+    if (!curve || !curveRequest) return;
+    const payload = {
+      generated_at: new Date().toISOString(),
+      request: curveRequest,
+      metrics: curve.metrics,
+      native_curve: curve.native_curve,
+      delivered_curve: curve.delivered_curve,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ev_curve_${curveRequest.vehicle_class}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleAsk(query: string) {
@@ -70,7 +90,7 @@ export default function Home() {
 
         {curve && !curveLoading && (
           <section className="space-y-4">
-            <CurveChart nativeCurve={curve.native_curve} deliveredCurve={curve.delivered_curve} />
+            <CurveChart nativeCurve={curve.native_curve} deliveredCurve={curve.delivered_curve} onExport={handleExport} />
             <MetricsPanel metrics={curve.metrics} />
             <ReasoningPanel parameters={curve.parameters} />
           </section>

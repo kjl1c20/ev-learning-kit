@@ -10,7 +10,8 @@ interface Props {
 
 export default function CurveForm({ onSubmit, loading }: Props) {
   const [vehicleClass, setVehicleClass] = useState<VehicleClass>("sedan");
-  const [capacity, setCapacity] = useState(75);
+  const [totalCapacity, setTotalCapacity] = useState(82);
+  const [usableCapacity, setUsableCapacity] = useState(75);
   const [vehicleMaxDc, setVehicleMaxDc] = useState(250);
   const [sitePower, setSitePower] = useState(150);
 
@@ -18,14 +19,15 @@ export default function CurveForm({ onSubmit, loading }: Props) {
     e.preventDefault();
     onSubmit({
       vehicle_class: vehicleClass,
-      battery_capacity_kwh: capacity,
+      total_battery_capacity_kwh: totalCapacity,
+      usable_battery_capacity_kwh: usableCapacity,
       vehicle_max_dc_kw: vehicleMaxDc,
       site_power_kw: sitePower,
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-5">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-6">
       <Field label="Vehicle class">
         <select
           value={vehicleClass}
@@ -40,8 +42,12 @@ export default function CurveForm({ onSubmit, loading }: Props) {
         </select>
       </Field>
 
-      <Field label="Battery (kWh)">
-        <NumberInput value={capacity} onChange={setCapacity} min={10} max={1000} disabled={loading} />
+      <Field label="Total battery (kWh)">
+        <NumberInput value={totalCapacity} onChange={setTotalCapacity} min={10} max={1000} disabled={loading} />
+      </Field>
+
+      <Field label="Usable battery (kWh)">
+        <NumberInput value={usableCapacity} onChange={setUsableCapacity} min={10} max={1000} disabled={loading} />
       </Field>
 
       <Field label="Vehicle max DC (kW)">

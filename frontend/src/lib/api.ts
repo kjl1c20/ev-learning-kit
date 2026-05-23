@@ -31,6 +31,7 @@ export interface CurvePoint {
 }
 
 export interface CurveParameters {
+  curve_type: "flat_plateau" | "tapered_ramp" | "stepped";
   initial_power_kw: number;
   peak_power_kw: number;
   peak_soc_start: number;
@@ -40,6 +41,7 @@ export interface CurveParameters {
   chemistry: "NMC" | "LFP";
   voltage_architecture: 400 | 800 | 900;
   reasoning: string;
+  steps: [number, number][] | null;
 }
 
 export interface CurveMetrics {
@@ -59,7 +61,8 @@ export interface GenerateCurveResponse {
 
 export interface GenerateCurveRequest {
   vehicle_class: VehicleClass;
-  battery_capacity_kwh: number;
+  total_battery_capacity_kwh: number;
+  usable_battery_capacity_kwh: number;
   vehicle_max_dc_kw: number;
   site_power_kw: number;
 }
