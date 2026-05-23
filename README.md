@@ -188,3 +188,6 @@ These sources are used for personal and educational purposes only.
 MIT License — Copyright (c) 2026 kjl1c20
 
 You are free to use, copy, modify, and distribute this project, provided the original copyright notice is retained.
+
+## Coming up
+More vehicles to be loaded in the vehicle_profile table
