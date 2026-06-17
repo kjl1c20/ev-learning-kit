@@ -50,7 +50,7 @@ export default function CurveChart({ nativeCurve, deliveredCurve, onExport }: Pr
             tick={{ fontSize: 11, fill: "#6b7280" }}
           />
           <Tooltip
-            formatter={(value: number) => `${value.toFixed(0)} kW`}
+            formatter={(value) => [typeof value === 'number' ? `${value.toFixed(0)} kW` : value]}
             labelFormatter={(label) => `SOC ${label}%`}
             contentStyle={{ fontSize: 12, borderRadius: 6 }}
           />
