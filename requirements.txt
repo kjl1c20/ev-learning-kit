@@ -3,6 +3,7 @@ anthropic>=0.30.0
 openai>=1.40.0
 fastapi>=0.111.0
 uvicorn>=0.30.0
+mangum>=0.17.0
 
 # Vector database
 pgvector>=0.3.0
